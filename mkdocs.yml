@@ -80,6 +80,7 @@ nav:
           - ShockWave: examples/shock_wave.md
           - tempoGAN: examples/tempoGAN.md
           - NSFNet4: examples/nsfnet4.md
+          - Sedan_Aero_AI: examples/sedan_aero_ai.md
           - ViV: examples/viv.md
         - 结构:
           - Biharmonic2D: examples/biharmonic2d.md

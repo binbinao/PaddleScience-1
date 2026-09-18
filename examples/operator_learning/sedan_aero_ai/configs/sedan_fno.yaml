@@ -16,12 +16,12 @@ hydra:
 # Model Configuration — TFNO3dNet for 3D flow field prediction
 # ============================================================
 MODEL:
-  input_keys: ["x"]          # 3D spatial coordinates + inlet velocity
+  input_keys: ["sdf"]        # SDF of the car geometry (single input channel)
   output_keys: ["u", "v", "w", "p"]  # velocity (3 comps) + pressure
   n_modes_height: 12
   n_modes_width: 12
   n_modes_depth: 12
-  in_channels: 4             # (x, y, z, SDF)
+  in_channels: 1             # SDF only — matches create_fno_dataset output (N, 1, D, H, W)
   out_channels: 4            # (u, v, w, p)
   hidden_channels: 64
   projection_channels: 128

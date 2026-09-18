@@ -122,12 +122,20 @@ class SedanAeroFNO(nn.Layer):
     def _pad_domain(self, x):
         pad = int(self.domain_padding * x.shape[-1])
         pad_d = int(self.domain_padding * x.shape[-3])
+        # Remember pad amounts so _unpad_domain crops symmetrically
+        # (recomputing from the padded shape would over-crop).
+        self._pad_sizes = (pad_d, pad)
         return nn.functional.pad(x, [pad, pad, pad, pad, pad_d, pad_d], mode="constant")
 
     def _unpad_domain(self, x):
-        pad = int(self.domain_padding * x.shape[-1])
-        pad_d = int(self.domain_padding * x.shape[-3])
-        return x[..., pad_d:-pad_d, pad:-pad, pad:-pad]
+        pad_d, pad = self._pad_sizes
+        # Explicit end indices: `pad:-pad` would yield an empty slice when pad == 0
+        return x[
+            ...,
+            pad_d : x.shape[-3] - pad_d,
+            pad : x.shape[-2] - pad,
+            pad : x.shape[-1] - pad,
+        ]
 
 
 class SpectralConv3d(nn.Layer):
@@ -246,9 +254,13 @@ class SedanAeroCNN(nn.Layer):
 
         # Decoder with skip connections
         d1 = self.act(self.dec_conv1(b))
-        d1 = d1 + nn.functional.interpolate(e2, size=d1.shape[-3:], mode="trilinear")
+        # Strided convs can make spatial dims non-divisible by 2; align the
+        # transposed-conv output to the encoder feature map before adding.
+        d1 = nn.functional.interpolate(d1, size=e2.shape[-3:], mode="trilinear")
+        d1 = d1 + e2
         d2 = self.act(self.dec_conv2(d1))
-        d2 = d2 + nn.functional.interpolate(e1, size=d2.shape[-3:], mode="trilinear")
+        d2 = nn.functional.interpolate(d2, size=e1.shape[-3:], mode="trilinear")
+        d2 = d2 + e1
         out = self.dec_conv3(d2)
 
         return out

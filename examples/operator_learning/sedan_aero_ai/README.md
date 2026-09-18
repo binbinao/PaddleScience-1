@@ -96,10 +96,13 @@ python train.py --model fno --epochs 500 --batch-size 8 --device gpu
 
 ```bash
 # 加载训练好的模型进行推理 + 速度 benchmark
-python infer.py --model fno --checkpoint ./outputs/2026-08-07/best_model.pdparams --benchmark
+python infer.py --model fno --model-path ./outputs/final_model.pdparams --benchmark
 
 # 多工况预测
-python infer.py --model fno --checkpoint <path> --u-inf 25 30 35
+python infer.py --model fno --model-path <path> --u-inf 25 30 35
+
+# 单独评估已训练模型（复用训练时生成的验证数据）
+python train.py --model fno --eval --output-dir ./outputs
 ```
 
 ---
