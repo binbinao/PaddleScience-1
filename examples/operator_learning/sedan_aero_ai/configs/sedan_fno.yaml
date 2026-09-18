@@ -1,0 +1,99 @@
+# Sedan External Aerodynamics AI Surrogate Model Configuration
+# Based on TFNO3dNet (3D Fourier Neural Operator) for 100-1000x speedup over CFD
+
+defaults:
+  - override hydra/job_logging: default
+
+hydra:
+  run:
+    dir: ./outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: ./outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: true
+
+# ============================================================
+# Model Configuration — TFNO3dNet for 3D flow field prediction
+# ============================================================
+MODEL:
+  input_keys: ["x"]          # 3D spatial coordinates + inlet velocity
+  output_keys: ["u", "v", "w", "p"]  # velocity (3 comps) + pressure
+  n_modes_height: 12
+  n_modes_width: 12
+  n_modes_depth: 12
+  in_channels: 4             # (x, y, z, SDF)
+  out_channels: 4            # (u, v, w, p)
+  hidden_channels: 64
+  projection_channels: 128
+  n_layers: 4
+  domain_padding: 0.1
+  fno_skip: "linear"
+  factorization: "dense"
+  norm: "group_norm"
+
+# ============================================================
+# Simulation Physical Parameters
+# ============================================================
+PHYSICS:
+  Re: 2.0e6                  # Reynolds number (high-speed cruise)
+  U_inf: 30.0                # Freestream velocity [m/s] (~108 km/h)
+  rho: 1.225                 # Air density [kg/m^3]
+  nu: 1.5e-5                 # Kinematic viscosity [m^2/s] (= U_inf * L / Re)
+  L_ref: 4.5                 # Reference length (car length) [m]
+  A_ref: 2.2                 # Reference frontal area [m^2]
+
+# ============================================================
+# Computational Domain
+# ============================================================
+DOMAIN:
+  # Bounding box [x_min, x_max, y_min, y_max, z_min, z_max] in meters
+  # Car centered at origin, length ~4.5m, width ~1.8m, height ~1.4m
+  bbox: [-15.0, 25.0, -8.0, 8.0, 0.0, 8.0]
+  # Grid resolution for inference
+  nx: 128
+  ny: 64
+  nz: 32
+  # Car geometry bounding box
+  car_bbox: [-2.25, 2.25, -0.9, 0.9, 0.0, 1.4]
+
+# ============================================================
+# Training Configuration
+# ============================================================
+TRAIN:
+  epochs: 500
+  iters_per_epoch: 100
+  batch_size: 4
+  eval_during_train: true
+  eval_freq: 50
+  save_freq: 100
+  pretrained_model_path: null
+  lr_scheduler:
+    epochs: 500
+    iters_per_epoch: 100
+    learning_rate: 1.0e-3
+    step_size: 100
+    gamma: 0.5
+  weight_decay: 1.0e-4
+  use_amp: false
+
+# ============================================================
+# Evaluation & Inference Configuration
+# ============================================================
+EVAL:
+  pretrained_model_path: null
+
+INFER:
+  pretrained_model_path: null
+  export_path: ./inference/sedan_aero
+  batch_size: 1
+  use_onnx: false
+
+# ============================================================
+# Data Configuration
+# ============================================================
+DATA:
+  use_synthetic: true         # Use synthetic data for testing
+  train_samples: 500
+  val_samples: 100
+  test_samples: 50
+  data_dir: ./data/generated/
