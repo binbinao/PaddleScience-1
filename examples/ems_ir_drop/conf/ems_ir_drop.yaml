@@ -1,0 +1,114 @@
+defaults:
+  - ppsci_default
+  - TRAIN: train_default
+  - TRAIN/ema: ema_default
+  - TRAIN/swa: swa_default
+  - EVAL: eval_default
+  - INFER: infer_default
+  - hydra/job/config/override_dirname/exclude_keys: exclude_keys_default
+  - _self_
+
+hydra:
+  run:
+    # dynamic output directory according to running time and override name
+    dir: output_ems_ir_drop/${now:%Y-%m-%d}/${now:%Y-%m-%S}/${hydra.job.override_dirname}
+  job:
+    name: ${mode} # name of logfile
+    chdir: false # keep current working directory unchanged
+  callbacks:
+    init_callback:
+      _target_: ppsci.utils.callbacks.InitCallback
+  sweep:
+    # output directory for multirun
+    dir: ${hydra.run.dir}
+    subdir: ./
+
+# general settings
+mode: train # running mode: train/eval
+seed: 42
+log_freq: 20
+output_dir: ${hydra:run.dir}
+
+# ---------------------------------------------------------------------------
+# EMS engine-management ECU 5V power plane (1 unit = 100 mm; board 160x100 mm)
+# ---------------------------------------------------------------------------
+BOARD: [1.6, 1.0]
+# vertical anti-routing slot removed; isolation now provided by a row of
+# mounting/via holes at x=0.70 (see HOLES_COORD), matching real EMS PCB
+# practice where a via fence is preferred over a long slot
+SLOT: null
+# mounting hole radius (M3 clearance)
+HOLE_R: 0.02
+HOLES_COORD: [[0.08, 0.08], [1.52, 0.08], [0.08, 0.92], [1.52, 0.92],
+              [0.70, 0.15], [0.70, 0.30], [0.70, 0.45], [0.70, 0.60],
+              [0.70, 0.75], [0.70, 0.90]]
+# VRM pad (name, cx, cy, r): DC-DC buck regulator, held at u=0
+VRM: ["VRM", 0.25, 0.50, 0.0225]
+# load pads (name, cx, cy, r, current[A]): MCU, ignition driver, sensor
+# cluster, CAN transceiver, EEPROM
+PADS:
+  - ["MCU", 1.35, 0.70, 0.0225, 0.50]
+  - ["IGN", 1.25, 0.22, 0.0175, 0.60]
+  - ["SENS", 0.85, 0.85, 0.0125, 0.15]
+  - ["CAN", 0.50, 0.15, 0.0075, 0.08]
+  - ["EEP", 1.48, 0.45, 0.0075, 0.05]
+# sheet conductance of the 2oz copper plane [S]: sigma * t = 5.8e7 * 70um
+SIGMA_S: 4060.0
+# FDM reference grid resolution (cells per unit length)
+FDM_N: 200
+
+# sampling sizes
+NPOINT_INTERIOR: 20000
+NPOINT_VRM: 400
+NPOINT_PER_PAD: 200
+NPOINT_EDGE: 2000
+NPOINT_SLOT: 1000
+NPOINT_HOLE: 1000
+NPOINT_VIS: 20000
+
+# model settings: the network learns the smooth part v of the potential
+# split u = v + u_s (u_s is the closed-form pad singularity); u is
+# reconstructed as v + u_s for validation, visualization and inference
+MODEL:
+  input_keys: ["x", "y"]
+  output_keys: ["v"]
+  num_layers: 5
+  hidden_size: 40
+  activation: "tanh"
+
+# training settings
+TRAIN:
+  epochs: 800
+  iters_per_epoch: 1
+  eval_during_train: true
+  eval_freq: 200
+  learning_rate: 0.001
+  # sparse FDM anchor supervision: pure boundary-driven PINN training
+  # stalls in a deceptive v ~ 0 solution on this Neumann-heavy problem;
+  # 2000 anchor values (about 12% of the FDM copper nodes) pin the
+  # far-field amplitude while PDE/wall constraints keep consistency
+  anchor_points: 2000
+  anchor_weight: 10.0
+
+# evaluation settings
+EVAL:
+  pretrained_model_path: null
+  eval_with_no_grad: true
+  batch_size: 4096
+
+INFER:
+  pretrained_model_path: null
+  export_path: ./inference/ems_ir_drop
+  pdmodel_path: ${INFER.export_path}.pdmodel
+  pdiparams_path: ${INFER.export_path}.pdiparams
+  device: cpu
+  engine: native
+  precision: fp32
+  onnx_path: ${INFER.export_path}.onnx
+  ir_optim: true
+  min_subgraph_size: 10
+  gpu_mem: 4000
+  gpu_id: 0
+  max_batch_size: 1024
+  num_cpu_threads: 4
+  batch_size: 1024

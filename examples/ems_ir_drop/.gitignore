@@ -1,0 +1,5 @@
+# hydra run outputs (never commit)
+output_ems_ir_drop/
+# exported static inference model
+inference/
+__pycache__/

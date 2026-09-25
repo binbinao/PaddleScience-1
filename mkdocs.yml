@@ -96,6 +96,8 @@ nav:
           - Heat_PINN: examples/heat_pinn.md
           - PhyGeoNet: examples/phygeonet.md
           - Chip_heat: examples/chip_heat.md
+        - 电子(EDA):
+          - EMS_IR_Drop: examples/ems_ir_drop.md
       - 材料科学(AI for Material):
         - hPINNs: examples/hpinns.md
         - CGCNN: examples/cgcnn.md
@@ -255,6 +257,7 @@ plugins:
             流体: Fluid Dynamics
             结构: Structural Mechanics
             传热: Heat Transfer
+            电子(EDA): Electronic Design
             材料科学(AI for Material): AI for Material
             地球科学(AI for Earth Science): AI for Earth Science
             化学科学(AI for Chemistry): AI for Chemistry
