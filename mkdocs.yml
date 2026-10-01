@@ -34,6 +34,7 @@ nav:
       - 功能介绍: overview.md
       - 安装使用: install_setup.md
       - 快速开始: quickstart.md
+      - 新用户Playbook: playbook.md
       - 多硬件支持: multi_device.md
       - 学习资料: tutorials.md
   - 经典案例:
@@ -249,6 +250,7 @@ plugins:
             功能介绍: Overview
             安装使用: Installation & Setup
             快速开始: Quick Start
+            新用户Playbook: New-User Playbook
             多硬件支持: Multi-Hardware Support
             学习资料: Tutorials
             经典案例: Case Studies
